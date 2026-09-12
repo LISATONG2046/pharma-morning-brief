@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>创新药早间要闻（公开版） · 早报库</title>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--ac:#38bdf8;--tx:#ecf0f5;--mut:#94a3b8;--line:#334155;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--tx);}
+  header{padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;}
+  header h1{margin:0;font-size:20px;}
+  header .sub{color:var(--mut);font-size:13px;margin-top:4px;}
+  .wrap{display:flex;min-height:calc(100vh - 70px);}
+  .list{width:320px;border-right:1px solid var(--line);overflow:auto;flex-shrink:0;}
+  .search{padding:12px;}
+  .search input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:14px;}
+  .item{padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .item:hover{background:#243042;}
+  .item.active{background:#243042;border-left:3px solid var(--ac);}
+  .item .d{color:var(--ac);font-size:12px;}
+  .item .t{font-size:14px;margin-top:3px;line-height:1.4;}
+  .pane{flex:1;overflow:auto;padding:24px 28px;max-width:860px;}
+  .media{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 20px;}
+  audio{width:100%;max-width:520px;}
+  video{width:100%;max-width:360px;border-radius:10px;background:#000;}
+  .content h1{font-size:22px;} .content h2{font-size:17px;color:var(--ac);margin-top:22px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .content h3{font-size:15px;} .content a{color:var(--ac);} .content blockquote{color:var(--mut);border-left:3px solid var(--line);margin:8px 0;padding:2px 12px;}
+  .content ul{padding-left:20px;} .content li{margin:6px 0;line-height:1.6;}
+  .empty{color:var(--mut);padding:40px;text-align:center;}
+  @media(max-width:720px){.wrap{flex-direction:column;}.list{width:100%;max-height:40vh;border-right:none;border-bottom:1px solid var(--line);}}
+</style>
+</head>
+<body>
+<header><h1>📈 创新药早间要闻（公开版） · 早报库</h1><div class="sub">累计历史早报 · 可搜索 · 可听可看 · 每日 7:30 更新</div></header>
+<div class="wrap">
+  <div class="list">
+    <div class="search"><input id="q" placeholder="搜索日期 / 标题 / 亮点…" oninput="render()"></div>
+    <div id="items"></div>
+  </div>
+  <div class="pane" id="pane"><div class="empty">← 从左侧选择一期早报</div></div>
+</div>
+<script>
+let ALL=[], cur=null;
+async function boot(){
+  try{ ALL = await (await fetch('api/index.json')).json(); }catch(e){ ALL=[]; }
+  render();
+  if(ALL.length) open(ALL[0].date);
+}
+function render(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  const box=document.getElementById('items'); box.innerHTML='';
+  ALL.filter(e=>!q||(e.date+e.title+e.highlight).toLowerCase().includes(q)).forEach(e=>{
+    const d=document.createElement('div');
+    d.className='item'+(e.date===cur?' active':'');
+    d.innerHTML='<div class="d">'+e.date+(e.hasAudio?' · 🎧':'')+(e.hasVideo?' · 🎬':'')+'</div><div class="t">'+esc(e.highlight||e.title)+'</div>';
+    d.onclick=()=>open(e.date); box.appendChild(d);
+  });
+}
+async function open(date){
+  cur=date; render();
+  const e=ALL.find(x=>x.date===date)||{};
+  let html='<div class="media">';
+  if(e.hasAudio) html+='<audio controls preload="none" src="briefs/'+date+'/brief.mp3"></audio>';
+  if(e.hasVideo) html+='<video controls preload="none" src="briefs/'+date+'/brief.mp4"></video>';
+  html+='</div><div class="content" id="c">加载中…</div>';
+  document.getElementById('pane').innerHTML=html;
+  try{ document.getElementById('c').innerHTML = await (await fetch('briefs/'+date+'/content.html')).text(); }
+  catch(err){ document.getElementById('c').innerHTML='<p>内容加载失败</p>'; }
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+boot();
+</script>
+</body>
+</html>
